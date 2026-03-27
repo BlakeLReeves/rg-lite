@@ -1,12 +1,9 @@
+use ansi_term::Color::Yellow;
 use std::fs;
 
 use crate::Config;
 
 pub fn run(Config { file_path, pattern }: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Running rg-lite...");
-    println!("pattern: {}", pattern);
-    println!("file: {}", file_path);
-
     let file_contents = fs::read_to_string(file_path)?;
 
     let matching_contents = search_contents(pattern, &file_contents);
@@ -17,15 +14,25 @@ pub fn run(Config { file_path, pattern }: &Config) -> Result<(), Box<dyn std::er
     }
 
     for content in matching_contents {
-        println!("{}", content);
+        let (idx, line) = content;
+        let line_number = idx + 1;
+        let formatted_line = format_line(line, pattern);
+
+        println!("{}: {}", line_number, formatted_line);
     }
 
     Ok(())
 }
 
-fn search_contents<'a>(pattern: &str, contents: &'a str) -> Vec<&'a str> {
+fn search_contents<'a>(pattern: &str, contents: &'a str) -> Vec<(usize, &'a str)> {
     contents
         .lines()
-        .filter(|line| line.contains(pattern))
+        .enumerate()
+        .filter(|(_, line)| line.contains(pattern))
         .collect()
+}
+
+fn format_line(line: &str, pattern: &str) -> String {
+    let highlighted = Yellow.bold().paint(pattern).to_string();
+    line.replace(pattern, &highlighted)
 }
