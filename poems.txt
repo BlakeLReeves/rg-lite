@@ -4,4 +4,4 @@ pattern matching
 hello again
 rust is cool
 why do we need rust
-I have rust in my code
+I have Rust in my code

@@ -13,7 +13,7 @@ pub fn run(
     println!("{}", ignore_case);
     let file_contents = fs::read_to_string(file_path)?;
 
-    let matching_contents = search_contents(pattern, &file_contents);
+    let matching_contents = search_contents(pattern, &file_contents, ignore_case);
 
     if matching_contents.is_empty() {
         println!("No matching pattern in file!");
@@ -31,15 +31,25 @@ pub fn run(
     Ok(())
 }
 
-fn search_contents<'a>(pattern: &str, contents: &'a str) -> Vec<(usize, &'a str)> {
+fn search_contents<'a>(
+    pattern: &str,
+    contents: &'a str,
+    ignore_case: &bool,
+) -> Vec<(usize, &'a str)> {
     contents
         .lines()
         .enumerate()
-        .filter(|(_, line)| line.contains(pattern))
+        .filter(|(_, line)| {
+            if *ignore_case {
+                line.to_lowercase().contains(&pattern.to_lowercase())
+            } else {
+                line.contains(pattern)
+            }
+        })
         .collect()
 }
 
 fn format_line(line: &str, pattern: &str) -> String {
     let highlighted = Yellow.bold().paint(pattern).to_string();
-    line.replace(pattern, &highlighted)
+    line.replace(&pattern.to_lowercase(), &highlighted.to_lowercase())
 }
