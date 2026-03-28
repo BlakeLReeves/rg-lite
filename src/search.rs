@@ -3,7 +3,14 @@ use std::fs;
 
 use crate::Config;
 
-pub fn run(Config { file_path, pattern }: &Config) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(
+    Config {
+        file_path,
+        pattern,
+        ignore_case,
+    }: &Config,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}", ignore_case);
     let file_contents = fs::read_to_string(file_path)?;
 
     let matching_contents = search_contents(pattern, &file_contents);

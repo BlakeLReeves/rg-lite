@@ -1,14 +1,27 @@
-use rg_lite::{parse_config, run};
+use clap::Parser;
+use rg_lite::{Config, run};
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    pattern: String,
+
+    #[arg(short, long)]
+    file_path: String,
+
+    #[arg(short, long)]
+    ignore_case: bool,
+}
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let args = Args::parse();
 
-    if args.len() < 3 {
-        eprintln!("Usage: rg-lite <pattern> <file_path>");
-        std::process::exit(1);
-    }
-
-    let config = parse_config(&args);
+    let config = Config {
+        pattern: args.pattern,
+        file_path: args.file_path,
+        ignore_case: args.ignore_case,
+    };
 
     if let Err(e) = run(&config) {
         eprintln!("Application Error: {}", e);
