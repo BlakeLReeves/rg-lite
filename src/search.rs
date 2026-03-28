@@ -1,4 +1,5 @@
-use ansi_term::Color::Yellow;
+use colored::Colorize;
+use regex::Regex;
 use std::fs;
 
 use crate::Config;
@@ -10,7 +11,6 @@ pub fn run(
         ignore_case,
     }: &Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("{}", ignore_case);
     let file_contents = fs::read_to_string(file_path)?;
 
     let matching_contents = search_contents(pattern, &file_contents, ignore_case);
@@ -23,7 +23,7 @@ pub fn run(
     for content in matching_contents {
         let (idx, line) = content;
         let line_number = idx + 1;
-        let formatted_line = format_line(line, pattern);
+        let formatted_line = format_line(line, pattern, ignore_case);
 
         println!("{}: {}", line_number, formatted_line);
     }
@@ -49,7 +49,16 @@ fn search_contents<'a>(
         .collect()
 }
 
-fn format_line(line: &str, pattern: &str) -> String {
-    let highlighted = Yellow.bold().paint(pattern).to_string();
-    line.replace(&pattern.to_lowercase(), &highlighted.to_lowercase())
+fn format_line(line: &str, pattern: &str, ignore_case: &bool) -> String {
+    let regex_pattern = if *ignore_case {
+        format!("(?i){}", regex::escape(pattern))
+    } else {
+        regex::escape(pattern)
+    };
+
+    let re = Regex::new(&regex_pattern).unwrap();
+    re.replace_all(line, |caps: &regex::Captures| {
+        caps[0].bright_yellow().bold().to_string()
+    })
+    .to_string()
 }
