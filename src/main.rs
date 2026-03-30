@@ -4,13 +4,13 @@ use rg_lite::{Config, run};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long)]
+    #[arg(short, long, help = "Pattern to search for")]
     pattern: String,
 
-    #[arg(short, long)]
+    #[arg(short, long, help = "File to search")]
     file_path: String,
 
-    #[arg(short, long)]
+    #[arg(short, long, help = "Case insensitive search")]
     ignore_case: bool,
 }
 
