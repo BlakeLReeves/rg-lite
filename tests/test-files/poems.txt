@@ -1,0 +1,7 @@
+hello world
+rust is fun
+pattern matching
+hello again
+rust is cool
+why do we need rust
+I have Rust in my code

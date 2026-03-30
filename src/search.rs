@@ -1,6 +1,7 @@
 use colored::Colorize;
 use regex::Regex;
 use std::fs;
+use std::path::Path;
 
 use crate::{Config, build_regex};
 
@@ -11,10 +12,17 @@ pub fn run(
         ignore_case,
     }: &Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let file_contents = fs::read_to_string(file_path)?;
     let re = build_regex(pattern, ignore_case);
+    let path = Path::new(file_path);
+    let mut matching_contents: Vec<(usize, String)> = Vec::new();
+    let file_contents;
 
-    let matching_contents = search_contents(&file_contents, &re);
+    if path.is_dir() {
+        search_dir(path, &re, &mut matching_contents)?;
+    } else {
+        file_contents = fs::read_to_string(path)?;
+        collect_matches(&file_contents, &re, &mut matching_contents);
+    }
 
     if matching_contents.is_empty() {
         println!("No matching pattern in file!");
@@ -24,7 +32,7 @@ pub fn run(
     for content in matching_contents {
         let (idx, line) = content;
         let line_number = idx + 1;
-        let formatted_line = format_line(line, &re);
+        let formatted_line = format_line(&line, &re);
 
         println!("{}: {}", line_number, formatted_line);
     }
@@ -32,12 +40,12 @@ pub fn run(
     Ok(())
 }
 
-fn search_contents<'a>(contents: &'a str, re: &Regex) -> Vec<(usize, &'a str)> {
+fn collect_matches(contents: &str, re: &Regex, matching_contents: &mut Vec<(usize, String)>) {
     contents
         .lines()
         .enumerate()
         .filter(|(_, line)| re.is_match(line))
-        .collect()
+        .for_each(|(idx, line)| matching_contents.push((idx, line.to_string())));
 }
 
 fn format_line(line: &str, re: &Regex) -> String {
@@ -45,4 +53,24 @@ fn format_line(line: &str, re: &Regex) -> String {
         caps[0].bright_yellow().bold().to_string()
     })
     .to_string()
+}
+
+fn search_dir(
+    path: &Path,
+    re: &Regex,
+    matching_contents: &mut Vec<(usize, String)>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            search_dir(&path, &re, matching_contents)?;
+        } else {
+            let file_contents = fs::read_to_string(path)?;
+            collect_matches(&file_contents, &re, matching_contents);
+        }
+    }
+
+    Ok(())
 }
