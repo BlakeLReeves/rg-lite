@@ -32,9 +32,14 @@ pub fn run(
     for content in matching_contents {
         let (path, idx, line) = content;
         let line_number = idx + 1;
+        let formatted_line_number = line_number.to_string().red().bold();
         let formatted_line = format_line(&line, &re);
+        let formatted_path = path.display().to_string().green().bold();
 
-        println!("{}:{}: {}", path.display(), line_number, formatted_line);
+        println!(
+            "{}:{}: {}",
+            formatted_path, formatted_line_number, formatted_line
+        );
     }
 
     Ok(())
