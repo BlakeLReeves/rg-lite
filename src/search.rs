@@ -20,7 +20,10 @@ pub fn run(
     if path.is_dir() {
         search_dir(path, &re, &mut matching_contents)?;
     } else {
-        file_contents = fs::read_to_string(path)?;
+        file_contents = match fs::read_to_string(path) {
+            Ok(contents) => contents,
+            Err(_) => return Ok(()),
+        };
         collect_matches(&file_contents, &re, &mut matching_contents, path);
     }
 
@@ -79,7 +82,9 @@ fn search_dir(
         if path.is_dir() {
             search_dir(&path, &re, matching_contents)?;
         } else {
-            let file_contents = fs::read_to_string(&path)?;
+            let Ok(file_contents) = fs::read_to_string(&path) else {
+                return Ok(());
+            };
             collect_matches(&file_contents, &re, matching_contents, &path);
         }
     }
