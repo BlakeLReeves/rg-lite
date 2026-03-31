@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 
 use crate::{Config, build_regex};
 
+const IGNORE_FILE_PATH: &str = ".ignore";
+
 pub fn run(
     Config {
         file_path,
@@ -16,9 +18,17 @@ pub fn run(
     let path = Path::new(file_path);
     let mut matching_contents: Vec<(PathBuf, usize, String)> = Vec::new();
     let file_contents;
+    let ignore_file_path = Path::new(IGNORE_FILE_PATH);
+    let ignore_file_contents = fs::read_to_string(&ignore_file_path)?;
+    let ignore_files: Vec<&str> = ignore_file_contents.lines().collect();
+
+    if should_ignore(path, &ignore_files) {
+        println!("Input path is ignored: {}", path.display());
+        return Ok(());
+    }
 
     if path.is_dir() {
-        search_dir(path, &re, &mut matching_contents)?;
+        search_dir(path, &re, &mut matching_contents, &ignore_files)?;
     } else {
         file_contents = match fs::read_to_string(path) {
             Ok(contents) => contents,
@@ -74,20 +84,33 @@ fn search_dir(
     path: &Path,
     re: &Regex,
     matching_contents: &mut Vec<(PathBuf, usize, String)>,
+    ignore_files: &[&str],
 ) -> Result<(), Box<dyn std::error::Error>> {
     for entry in fs::read_dir(path)? {
         let entry = entry?;
         let path = entry.path();
 
+        if should_ignore(&path, ignore_files) {
+            println!("Skipping: {}", path.display());
+            continue;
+        }
+
         if path.is_dir() {
-            search_dir(&path, &re, matching_contents)?;
+            search_dir(&path, &re, matching_contents, ignore_files)?;
         } else {
             let Ok(file_contents) = fs::read_to_string(&path) else {
-                return Ok(());
+                continue;
             };
             collect_matches(&file_contents, &re, matching_contents, &path);
         }
     }
 
     Ok(())
+}
+
+fn should_ignore(path: &Path, ignore_files: &[&str]) -> bool {
+    path.file_name()
+        .and_then(|n| n.to_str())
+        .map(|name| ignore_files.contains(&name))
+        .unwrap_or(false)
 }
