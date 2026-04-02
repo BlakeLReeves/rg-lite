@@ -2,7 +2,7 @@ use colored::Colorize;
 use regex::Regex;
 use std::collections::HashSet;
 use std::fs::{self, File};
-use std::io::Read;
+use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 use walkdir::{DirEntry, WalkDir};
 
@@ -74,12 +74,8 @@ fn search_dir(
                 continue;
             }
 
-            let Ok(file_contents) = fs::read_to_string(path) else {
-                continue;
-            };
-
             let relative_path = path.strip_prefix(cwd).unwrap_or(path);
-            total_matches += collect_matches(&file_contents, re, relative_path);
+            total_matches += collect_matches(re, relative_path);
         }
     }
 
@@ -90,12 +86,23 @@ fn search_dir(
     Ok(())
 }
 
-fn collect_matches(contents: &str, re: &Regex, path: &Path) -> usize {
+fn collect_matches(re: &Regex, path: &Path) -> usize {
+    let file = match File::open(path) {
+        Ok(f) => f,
+        Err(_) => return 0,
+    };
+    let reader = BufReader::new(file);
+
     let mut count = 0;
     let formatted_path = path.to_string_lossy().to_string().green().bold();
 
-    for (idx, line) in contents.lines().enumerate() {
-        if re.is_match(line) {
+    for (idx, line) in reader.lines().enumerate() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => continue,
+        };
+
+        if re.is_match(&line) {
             count += 1;
             let formatted_line_number = (idx + 1).to_string().red().bold();
             let formatted_line = format_line(&line, &re);
@@ -132,13 +139,10 @@ fn format_line(line: &str, re: &Regex) -> String {
 }
 
 fn should_ignore(path: &Path, ignore_files: &HashSet<String>) -> bool {
-    path.components().any(|component| {
-        component
-            .as_os_str()
-            .to_str()
-            .map(|name| ignore_files.contains(name))
-            .unwrap_or(false)
-    })
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| ignore_files.contains(name))
+        .unwrap_or(false)
 }
 
 fn is_hidden(entry: &DirEntry) -> bool {
