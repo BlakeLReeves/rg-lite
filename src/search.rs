@@ -99,10 +99,13 @@ fn search_dir(
 }
 
 fn should_ignore(path: &Path, ignore_files: &[String]) -> bool {
-    path.file_name()
-        .and_then(|n| n.to_str())
-        .map(|name| ignore_files.iter().any(|f| f == name))
-        .unwrap_or(false)
+    path.components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .map(|name| ignore_files.iter().any(|f| f == name))
+            .unwrap_or(false)
+    })
 }
 
 fn is_hidden(entry: &DirEntry) -> bool {
