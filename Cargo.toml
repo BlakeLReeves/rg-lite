@@ -8,3 +8,4 @@ ansi_term = "0.12.1"
 clap = { version = "4.6.0", features = ["derive"] }
 colored = "3.1.1"
 regex = "1.12.3"
+walkdir = "2.5.0"
